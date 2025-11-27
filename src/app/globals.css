@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Charter", "Georgia", "Times New Roman", serif;
+  --font-sans: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+}
+
+/* Custom Utilities for Medium-like look */
+@utility container-medium {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}

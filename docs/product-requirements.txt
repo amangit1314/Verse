@@ -1,0 +1,6 @@
+complete this platform to have complete ui of medium such as:
+- medium clone and use a free cms to manage the content,
+- we need user auth so use next-auth and store it in the cms, and 
+- for each users blogs manage the cms, 
+
+imp: need all features of medium blog app

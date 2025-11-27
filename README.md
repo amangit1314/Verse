@@ -1,27 +1,148 @@
-# Next.js + Tailwind CSS Example
+# Verse - Medium Clone
 
-This example shows how to use [Tailwind CSS](https://tailwindcss.com/) [(v3.0)](https://tailwindcss.com/blog/tailwindcss-v3) with Next.js. It follows the steps outlined in the official [Tailwind docs](https://tailwindcss.com/docs/guides/nextjs).
+A fully-featured Medium clone built with Next.js 15, Sanity CMS, and NextAuth.
 
-## Preview
+## Features
 
-Preview the example live on [StackBlitz](http://stackblitz.com/):
+- 📝 **Rich Content Creation** - Write and publish articles with rich text formatting
+- 👤 **User Authentication** - Sign in with Google via NextAuth
+- 💬 **Nested Comments** - Engage with threaded comment discussions
+- ❤️ **Likes & Saves** - Like posts and comments, bookmark articles for later
+- 👥 **Social Features** - Follow authors, view profiles
+- 🌓 **Dark Mode** - Beautiful light and dark themes
+- 📱 **Responsive Design** - Works seamlessly on all devices
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/vercel/next.js/tree/canary/examples/with-tailwindcss)
+## Tech Stack
 
-## Deploy your own
+- **Framework**: Next.js 15 (App Router)
+- **Styling**: Tailwind CSS 4
+- **CMS**: Sanity
+- **Auth**: NextAuth.js
+- **Language**: TypeScript
+- **Icons**: Lucide React
 
-Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_medium=readme&utm_campaign=next-example):
+## Getting Started
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/git/external?repository-url=https://github.com/vercel/next.js/tree/canary/examples/with-tailwindcss&project-name=with-tailwindcss&repository-name=with-tailwindcss)
+### Prerequisites
 
-## How to use
+- Node.js 18+ installed
+- A Sanity account and project
+- Google OAuth credentials
 
-Execute [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init) or [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/) to bootstrap the example:
+### Installation
 
+1. Clone the repository
 ```bash
-npx create-next-app --example with-tailwindcss with-tailwindcss-app
-# or
-yarn create next-app --example with-tailwindcss with-tailwindcss-app
+git clone <your-repo-url>
+cd Verse
 ```
 
-Deploy it to the cloud with [Vercel](https://vercel.com/new?utm_source=github&utm_medium=readme&utm_campaign=next-example) ([Documentation](https://nextjs.org/docs/deployment)).
+2. Install dependencies
+```bash
+npm install
+```
+
+3. Set up environment variables
+```bash
+cp .env.example .env.local
+```
+
+Fill in your Sanity project ID, NextAuth secret, and Google OAuth credentials.
+
+4. Run the development server
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to see the app.
+
+### Sanity Studio Setup
+
+1. Install Sanity CLI globally
+```bash
+npm install -g @sanity/cli
+```
+
+2. Initialize Sanity studio (if not already done)
+```bash
+sanity init
+```
+
+3. Import the schemas from `sanity/schemas/` into your Sanity studio
+
+4. Deploy your studio
+```bash
+sanity deploy
+```
+
+## Project Structure
+
+```
+Verse/
+├── src/                   # Source code
+│   ├── app/              # Next.js App Router
+│   │   ├── api/         # API routes
+│   │   │   ├── auth/   # NextAuth configuration
+│   │   │   ├── comment/ # Comment API
+│   │   │   ├── like/   # Like API
+│   │   │   └── save/   # Save API
+│   │   ├── post/[slug]/ # Post detail page
+│   │   ├── layout.tsx  # Root layout
+│   │   ├── page.tsx    # Home page
+│   │   └── globals.css # Global styles
+│   ├── components/      # React components
+│   │   ├── Navbar.tsx
+│   │   ├── PostCard.tsx
+│   │   ├── PostInteractions.tsx
+│   │   ├── CommentSection.tsx
+│   │   ├── ThemeToggle.tsx
+│   │   └── Providers.tsx
+│   ├── lib/            # Utility functions
+│   │   └── sanity.ts  # Sanity client config
+│   └── types/          # TypeScript types
+│       └── index.ts
+├── sanity/             # Sanity schemas
+│   └── schemas/
+│       ├── author.ts
+│       ├── post.ts
+│       ├── comment.ts
+│       ├── like.ts
+│       ├── save.ts
+│       └── category.ts
+├── public/             # Static assets
+├── .env.example        # Environment variables template
+├── next.config.js      # Next.js configuration
+├── tailwind.config.js  # Tailwind configuration
+└── tsconfig.json       # TypeScript configuration
+```
+
+## Environment Variables
+
+See `.env.example` for required environment variables.
+
+## Deployment
+
+### Vercel (Recommended)
+
+1. Push your code to GitHub
+2. Import your repository in Vercel
+3. Add environment variables
+4. Deploy!
+
+### Other Platforms
+
+This is a standard Next.js app and can be deployed to any platform that supports Next.js 15.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+MIT
+
+## Acknowledgments
+
+- Inspired by [Medium](https://medium.com)
+- Built with [Next.js](https://nextjs.org)
+- Powered by [Sanity](https://www.sanity.io)
