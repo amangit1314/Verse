@@ -1,33 +1,45 @@
 'use client';
 
 import Link from 'next/link';
-import { useSession, signIn, signOut } from 'next-auth/react';
 import ThemeToggle from './ThemeToggle';
 import { Feather, User, Bookmark, LogOut } from 'lucide-react';
 import { useState } from 'react';
+import { logout } from '@/lib/appwrite-auth';
+import { useAuth } from '@/hooks/useAuth';
+import { API_ROUTES, APP_ROUTES } from '@/lib/constants';
 
 export default function Navbar() {
-    const { data: session } = useSession();
+    const { user, loading } = useAuth();
     const [showMenu, setShowMenu] = useState(false);
 
+    const handleSignIn = () => {
+        window.location.href = API_ROUTES.authLogin;
+    };
+
+    const handleSignOut = async () => {
+        setShowMenu(false);
+        await logout();
+        window.location.href = APP_ROUTES.home;
+    };
+
     return (
-        <nav className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 sticky top-0 z-50">
+        <nav className="sticky top-0 z-50 border-b border-stone-200/80 bg-[#f7f4ed]/95 backdrop-blur dark:border-stone-800 dark:bg-[#11100e]/95">
             <div className="container-medium py-4">
                 <div className="flex items-center justify-between">
                     {/* Logo */}
                     <Link href="/" className="flex items-center space-x-2">
-                        <h1 className="text-3xl font-serif font-bold">Verse</h1>
+                        <h1 className="text-3xl font-serif font-bold tracking-tight">Verse</h1>
                     </Link>
 
                     {/* Right Side */}
                     <div className="flex items-center space-x-4">
                         <ThemeToggle />
 
-                        {session ? (
+                        {!loading && user ? (
                             <>
                                 <Link
                                     href="/write"
-                                    className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white"
+                                        className="flex items-center space-x-2 text-sm text-stone-600 transition-colors hover:text-black dark:text-stone-300 dark:hover:text-white"
                                 >
                                     <Feather className="w-5 h-5" />
                                     <span className="hidden md:inline">Write</span>
@@ -36,35 +48,32 @@ export default function Navbar() {
                                 <div className="relative">
                                     <button
                                         onClick={() => setShowMenu(!showMenu)}
-                                        className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold"
+                                        className="flex h-10 w-10 items-center justify-center rounded-full bg-black font-semibold text-white dark:bg-white dark:text-black"
                                     >
-                                        {session.user?.name?.[0] || 'U'}
+                                        {user.name?.[0] || user.email?.[0] || 'U'}
                                     </button>
 
                                     {showMenu && (
-                                        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2">
+                                        <div className="absolute right-0 mt-2 w-56 rounded-md border border-stone-200 bg-white py-2 shadow-lg dark:border-stone-800 dark:bg-[#1b1a17]">
                                             <Link
-                                                href="/me"
-                                                className="flex items-center space-x-3 px-4 py-2 hover:bg-gray-100 dark:hover:bg-slate-700"
+                                                href={APP_ROUTES.me}
+                                                className="flex items-center space-x-3 px-4 py-2 hover:bg-stone-100 dark:hover:bg-stone-800"
                                                 onClick={() => setShowMenu(false)}
                                             >
                                                 <User className="w-4 h-4" />
                                                 <span>Profile</span>
                                             </Link>
                                             <Link
-                                                href="/me/saved"
-                                                className="flex items-center space-x-3 px-4 py-2 hover:bg-gray-100 dark:hover:bg-slate-700"
+                                                href={APP_ROUTES.saved}
+                                                className="flex items-center space-x-3 px-4 py-2 hover:bg-stone-100 dark:hover:bg-stone-800"
                                                 onClick={() => setShowMenu(false)}
                                             >
                                                 <Bookmark className="w-4 h-4" />
                                                 <span>Saved Posts</span>
                                             </Link>
                                             <button
-                                                onClick={() => {
-                                                    setShowMenu(false);
-                                                    signOut();
-                                                }}
-                                                className="flex items-center space-x-3 px-4 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 w-full text-left"
+                                                onClick={handleSignOut}
+                                                className="flex w-full items-center space-x-3 px-4 py-2 text-left hover:bg-stone-100 dark:hover:bg-stone-800"
                                             >
                                                 <LogOut className="w-4 h-4" />
                                                 <span>Sign Out</span>
@@ -75,8 +84,8 @@ export default function Navbar() {
                             </>
                         ) : (
                             <button
-                                onClick={() => signIn('google')}
-                                className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+                                onClick={handleSignIn}
+                                className="rounded-full bg-black px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-stone-800 dark:bg-white dark:text-black dark:hover:bg-stone-200"
                             >
                                 Sign In
                             </button>

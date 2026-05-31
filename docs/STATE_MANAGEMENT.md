@@ -20,7 +20,7 @@ const { user, setUser, clearUser } = useAuthStore();
 **Features:**
 - Persisted to localStorage
 - Stores current user data
-- Syncs with NextAuth session
+- Syncs with the Appwrite account session
 
 ### 2. UI Store (`src/stores/uiStore.ts`)
 Manages UI-related state.

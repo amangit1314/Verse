@@ -76,3 +76,13 @@ export interface Save {
     };
     createdAt: string;
 }
+
+export interface UserCollection {
+    _id: string;
+    name: string;
+    description?: string;
+    authorId: string;
+    postsCount?: number;
+    createdAt: string;
+    updatedAt: string;
+}

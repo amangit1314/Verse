@@ -5,11 +5,37 @@
   --font-sans: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
 }
 
-/* Custom Utilities for Medium-like look */
 @utility container-medium {
-  max-width: 1200px;
+  max-width: 1180px;
   margin-left: auto;
   margin-right: auto;
   padding-left: 1.5rem;
   padding-right: 1.5rem;
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+::selection {
+  background: #1a8917;
+  color: #fff;
+}
+
+body {
+  letter-spacing: 0;
+}
+
+.article-body p {
+  margin-bottom: 1.5rem;
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  line-height: 1.85;
+}
+
+.article-body p:first-of-type::first-letter {
+  float: left;
+  padding-right: 0.35rem;
+  font-size: 4.5rem;
+  line-height: 0.9;
 }

@@ -1,27 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
 import { ID } from 'appwrite';
-import { createAppwriteServerDatabases, appwriteCollections, appwriteQueries, appwriteDatabaseId, getAuthorByEmail, createAuthor, transformComment } from '@/lib/appwrite-server';
+import { createAppwriteServerDatabases, appwriteCollections, appwriteQueries, appwriteDatabaseId, transformComment, getCurrentUserFromRequest, getOrCreateAuthorForUser } from '@/lib/appwrite-server';
+import { API_MESSAGES, APPWRITE_FIELD, EMPTY_PARENT_COMMENT_ID, HTTP_STATUS } from '@/lib/constants';
+import { CommentDocument, PostDocument } from '@/types/appwrite';
+
+interface CreateCommentBody {
+    postId?: string;
+    body?: string;
+    parentComment?: string;
+}
 
 export async function GET(request: NextRequest) {
     const postId = request.nextUrl.searchParams.get('postId');
     if (!postId) {
-        return NextResponse.json({ error: 'Missing postId' }, { status: 400 });
+        return NextResponse.json({ error: API_MESSAGES.missingPostId }, { status: HTTP_STATUS.badRequest });
     }
 
     const databases = createAppwriteServerDatabases();
-    const result = await databases.listDocuments(appwriteDatabaseId, appwriteCollections.comments, [
-        appwriteQueries.equal('postId', postId),
-        appwriteQueries.equal('parentCommentId', ''),
+    const result = await databases.listDocuments<CommentDocument>(appwriteDatabaseId, appwriteCollections.comments, [
+        appwriteQueries.equal(APPWRITE_FIELD.postId, postId),
+        appwriteQueries.equal(APPWRITE_FIELD.parentCommentId, EMPTY_PARENT_COMMENT_ID),
         appwriteQueries.orderDesc('$createdAt'),
     ]);
 
     const comments = await Promise.all(
-        result.documents.map(async (commentDoc: any) => {
-            const repliesResult = await databases.listDocuments(appwriteDatabaseId, appwriteCollections.comments, [
-                appwriteQueries.equal('postId', postId),
-                appwriteQueries.equal('parentCommentId', commentDoc.$id),
+        result.documents.map(async (commentDoc) => {
+            const repliesResult = await databases.listDocuments<CommentDocument>(appwriteDatabaseId, appwriteCollections.comments, [
+                appwriteQueries.equal(APPWRITE_FIELD.postId, postId),
+                appwriteQueries.equal(APPWRITE_FIELD.parentCommentId, commentDoc.$id),
                 appwriteQueries.orderAsc('$createdAt'),
             ]);
 
@@ -35,27 +41,23 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.email) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     try {
-        const { postId, body, parentComment } = await request.json();
-        const databases = createAppwriteServerDatabases();
-
-        let author = await getAuthorByEmail(session.user.email);
-        if (!author) {
-            author = await createAuthor({
-                name: session.user.name || session.user.email.split('@')[0],
-                email: session.user.email,
-                image: session.user.image || '',
-                slug: session.user.email.split('@')[0],
-            });
+        const user = await getCurrentUserFromRequest(request);
+        
+        if (!user || !user.email) {
+            return NextResponse.json({ error: API_MESSAGES.unauthorized }, { status: HTTP_STATUS.unauthorized });
         }
 
-        const commentDoc = await databases.createDocument(
+        const { postId, body, parentComment } = (await request.json()) as CreateCommentBody;
+        if (!postId) {
+            return NextResponse.json({ error: API_MESSAGES.missingPostId }, { status: HTTP_STATUS.badRequest });
+        }
+
+        const databases = createAppwriteServerDatabases();
+
+        const author = await getOrCreateAuthorForUser(user);
+
+        const commentDoc = await databases.createDocument<CommentDocument>(
             appwriteDatabaseId,
             appwriteCollections.comments,
             ID.unique(),
@@ -66,13 +68,13 @@ export async function POST(request: NextRequest) {
                 authorImage: author.image || '',
                 authorSlug: author.slug,
                 body,
-                parentCommentId: parentComment || '',
+                parentCommentId: parentComment || EMPTY_PARENT_COMMENT_ID,
                 approved: true,
                 likesCount: 0,
             }
         );
 
-        const postDoc = await databases.getDocument(appwriteDatabaseId, appwriteCollections.posts, postId);
+        const postDoc = await databases.getDocument<PostDocument>(appwriteDatabaseId, appwriteCollections.posts, postId);
         await databases.updateDocument(appwriteDatabaseId, appwriteCollections.posts, postId, {
             commentsCount: (postDoc.commentsCount ?? 0) + 1,
         });
@@ -80,6 +82,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ comment: transformComment(commentDoc) });
     } catch (error) {
         console.error('Error creating comment:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        return NextResponse.json({ error: API_MESSAGES.internalServerError }, { status: HTTP_STATUS.internalServerError });
     }
 }

@@ -2,9 +2,8 @@
 
 import { useLikePost, useSavePost } from '@/hooks/usePosts';
 import { useInteractionStore } from '@/stores/interactionStore';
-import { useSession } from 'next-auth/react';
 import { Heart, Bookmark } from 'lucide-react';
-import { useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PostInteractionsProps {
     postId: string;
@@ -15,7 +14,7 @@ export default function PostInteractions({
     postId,
     initialLikes,
 }: PostInteractionsProps) {
-    const { data: session } = useSession();
+    const { user } = useAuth();
     const likePost = useLikePost();
     const savePost = useSavePost();
 
@@ -25,7 +24,7 @@ export default function PostInteractions({
     const isSaved = savedPosts.has(postId);
 
     const handleLike = async () => {
-        if (!session) return;
+        if (!user) return;
 
         toggleLikePost(postId);
         try {
@@ -38,7 +37,7 @@ export default function PostInteractions({
     };
 
     const handleSave = async () => {
-        if (!session) return;
+        if (!user) return;
 
         toggleSavePost(postId);
         try {
@@ -54,9 +53,10 @@ export default function PostInteractions({
         <div className="flex items-center space-x-4">
             <button
                 onClick={handleLike}
-                disabled={!session || likePost.isPending}
-                className={`flex items-center space-x-2 ${isLiked ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'
+                disabled={!user || likePost.isPending}
+                className={`flex items-center space-x-2 ${isLiked ? 'text-red-500' : 'text-stone-500 dark:text-stone-400'
                     } hover:text-red-500 disabled:opacity-50 transition-colors`}
+                aria-label="Like post"
             >
                 <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
                 <span>{initialLikes + (isLiked ? 1 : 0)}</span>
@@ -64,9 +64,10 @@ export default function PostInteractions({
 
             <button
                 onClick={handleSave}
-                disabled={!session || savePost.isPending}
-                className={`${isSaved ? 'text-green-500' : 'text-gray-500 dark:text-gray-400'
-                    } hover:text-green-500 disabled:opacity-50 transition-colors`}
+                disabled={!user || savePost.isPending}
+                className={`${isSaved ? 'text-[#1a8917]' : 'text-stone-500 dark:text-stone-400'
+                    } hover:text-[#1a8917] disabled:opacity-50 transition-colors`}
+                aria-label="Save post"
             >
                 <Bookmark className={`w-6 h-6 ${isSaved ? 'fill-current' : ''}`} />
             </button>

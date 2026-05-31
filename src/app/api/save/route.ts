@@ -1,31 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
 import { ID } from 'appwrite';
-import { createAppwriteServerDatabases, appwriteCollections, appwriteQueries, appwriteDatabaseId, getAuthorByEmail } from '@/lib/appwrite-server';
+import { createAppwriteServerDatabases, appwriteCollections, appwriteQueries, appwriteDatabaseId, getCurrentUserFromRequest, getOrCreateAuthorForUser } from '@/lib/appwrite-server';
+import { API_MESSAGES, APPWRITE_FIELD, HTTP_STATUS } from '@/lib/constants';
+import { SaveDocument } from '@/types/appwrite';
+
+interface ToggleSaveBody {
+    postId?: string;
+}
 
 export async function POST(request: NextRequest) {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.email) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     try {
-        const { postId } = await request.json();
+        const user = await getCurrentUserFromRequest(request);
+
+        if (!user || !user.email) {
+            return NextResponse.json({ error: API_MESSAGES.unauthorized }, { status: HTTP_STATUS.unauthorized });
+        }
+
+        const { postId } = (await request.json()) as ToggleSaveBody;
         if (!postId) {
-            return NextResponse.json({ error: 'Missing postId' }, { status: 400 });
+            return NextResponse.json({ error: API_MESSAGES.missingPostId }, { status: HTTP_STATUS.badRequest });
         }
 
         const databases = createAppwriteServerDatabases();
-        const author = await getAuthorByEmail(session.user.email);
-        if (!author) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
-        }
+        const author = await getOrCreateAuthorForUser(user);
 
-        const existingSave = await databases.listDocuments(appwriteDatabaseId, appwriteCollections.saves, [
-            appwriteQueries.equal('authorId', author.$id),
-            appwriteQueries.equal('postId', postId),
+        const existingSave = await databases.listDocuments<SaveDocument>(appwriteDatabaseId, appwriteCollections.saves, [
+            appwriteQueries.equal(APPWRITE_FIELD.authorId, author.$id),
+            appwriteQueries.equal(APPWRITE_FIELD.postId, postId),
             appwriteQueries.limit(1),
         ]);
 
@@ -47,6 +48,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ saved: true });
     } catch (error) {
         console.error('Error toggling save:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        return NextResponse.json({ error: API_MESSAGES.internalServerError }, { status: HTTP_STATUS.internalServerError });
     }
 }

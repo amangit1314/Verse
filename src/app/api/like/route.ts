@@ -1,44 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
 import { ID } from 'appwrite';
-import { createAppwriteServerDatabases, appwriteCollections, appwriteQueries, appwriteDatabaseId, getAuthorByEmail } from '@/lib/appwrite-server';
+import { createAppwriteServerDatabases, appwriteCollections, appwriteQueries, appwriteDatabaseId, getCurrentUserFromRequest, getOrCreateAuthorForUser } from '@/lib/appwrite-server';
+import { API_MESSAGES, APPWRITE_FIELD, EMPTY_PARENT_COMMENT_ID, HTTP_STATUS } from '@/lib/constants';
+import { CommentDocument, LikeDocument, PostDocument } from '@/types/appwrite';
+
+interface ToggleLikeBody {
+    postId?: string;
+    commentId?: string;
+}
 
 export async function POST(request: NextRequest) {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.email) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     try {
-        const { postId, commentId } = await request.json();
+        const user = await getCurrentUserFromRequest(request);
+
+        if (!user || !user.email) {
+            return NextResponse.json({ error: API_MESSAGES.unauthorized }, { status: HTTP_STATUS.unauthorized });
+        }
+
+        const { postId, commentId } = (await request.json()) as ToggleLikeBody;
         if (!postId && !commentId) {
-            return NextResponse.json({ error: 'Must provide postId or commentId' }, { status: 400 });
+            return NextResponse.json({ error: API_MESSAGES.providePostOrCommentId }, { status: HTTP_STATUS.badRequest });
         }
 
         const databases = createAppwriteServerDatabases();
-        const author = await getAuthorByEmail(session.user.email);
-        if (!author) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
-        }
+        const author = await getOrCreateAuthorForUser(user);
 
-        const filters = [appwriteQueries.equal('authorId', author.$id)];
+        const filters = [appwriteQueries.equal(APPWRITE_FIELD.authorId, author.$id)];
         if (postId) {
-            filters.push(appwriteQueries.equal('postId', postId));
+            filters.push(appwriteQueries.equal(APPWRITE_FIELD.postId, postId));
         }
         if (commentId) {
-            filters.push(appwriteQueries.equal('commentId', commentId));
+            filters.push(appwriteQueries.equal(APPWRITE_FIELD.commentId, commentId));
         }
 
-        const likesResult = await databases.listDocuments(appwriteDatabaseId, appwriteCollections.likes, [
+        const likesResult = await databases.listDocuments<LikeDocument>(appwriteDatabaseId, appwriteCollections.likes, [
             ...filters,
             appwriteQueries.limit(1),
         ]);
 
         const targetCollection = postId ? appwriteCollections.posts : appwriteCollections.comments;
         const targetId = postId || commentId!;
-        const targetDoc = await databases.getDocument(appwriteDatabaseId, targetCollection, targetId);
+        const targetDoc = postId
+            ? await databases.getDocument<PostDocument>(appwriteDatabaseId, targetCollection, targetId)
+            : await databases.getDocument<CommentDocument>(appwriteDatabaseId, targetCollection, targetId);
 
         if (likesResult.documents.length > 0) {
             await databases.deleteDocument(appwriteDatabaseId, appwriteCollections.likes, likesResult.documents[0].$id);
@@ -54,8 +58,8 @@ export async function POST(request: NextRequest) {
             ID.unique(),
             {
                 authorId: author.$id,
-                postId: postId || '',
-                commentId: commentId || '',
+                postId: postId || EMPTY_PARENT_COMMENT_ID,
+                commentId: commentId || EMPTY_PARENT_COMMENT_ID,
             }
         );
 
@@ -66,6 +70,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ liked: true });
     } catch (error) {
         console.error('Error toggling like:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        return NextResponse.json({ error: API_MESSAGES.internalServerError }, { status: HTTP_STATUS.internalServerError });
     }
 }

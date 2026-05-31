@@ -1,12 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Post } from '@/types';
+import { getAppwriteFallbackHeaders } from '@/lib/appwrite-auth';
+import { API_ROUTES } from '@/lib/constants';
 
 // Fetch all posts
 export function usePosts() {
     return useQuery({
         queryKey: ['posts'],
         queryFn: async (): Promise<Post[]> => {
-            const response = await fetch('/api/posts');
+            const response = await fetch(API_ROUTES.posts);
             if (!response.ok) throw new Error('Failed to load posts');
             return response.json();
         },
@@ -19,7 +21,7 @@ export function usePost(slug: string) {
     return useQuery({
         queryKey: ['post', slug],
         queryFn: async (): Promise<Post | null> => {
-            const response = await fetch(`/api/post?slug=${encodeURIComponent(slug)}`);
+            const response = await fetch(`${API_ROUTES.post}?slug=${encodeURIComponent(slug)}`);
             if (!response.ok) throw new Error('Failed to load post');
             return response.json();
         },
@@ -34,9 +36,9 @@ export function useLikePost() {
 
     return useMutation({
         mutationFn: async (postId: string) => {
-            const response = await fetch('/api/like', {
+            const response = await fetch(API_ROUTES.like, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAppwriteFallbackHeaders() },
                 body: JSON.stringify({ postId }),
             });
             if (!response.ok) throw new Error('Failed to like post');
@@ -55,9 +57,9 @@ export function useSavePost() {
 
     return useMutation({
         mutationFn: async (postId: string) => {
-            const response = await fetch('/api/save', {
+            const response = await fetch(API_ROUTES.save, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAppwriteFallbackHeaders() },
                 body: JSON.stringify({ postId }),
             });
             if (!response.ok) throw new Error('Failed to save post');

@@ -1,12 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Comment } from '@/types';
+import { getAppwriteFallbackHeaders } from '@/lib/appwrite-auth';
+import { API_ROUTES } from '@/lib/constants';
 
 // Fetch comments for a post
 export function useComments(postId: string) {
     return useQuery({
         queryKey: ['comments', postId],
         queryFn: async (): Promise<Comment[]> => {
-            const response = await fetch(`/api/comment?postId=${encodeURIComponent(postId)}`);
+            const response = await fetch(`${API_ROUTES.comments}?postId=${encodeURIComponent(postId)}`);
             if (!response.ok) {
                 throw new Error('Failed to load comments');
             }
@@ -31,9 +33,9 @@ export function useCreateComment() {
             body: string;
             parentComment?: string;
         }) => {
-            const response = await fetch('/api/comment', {
+            const response = await fetch(API_ROUTES.comments, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAppwriteFallbackHeaders() },
                 body: JSON.stringify({ postId, body, parentComment }),
             });
             if (!response.ok) throw new Error('Failed to create comment');
@@ -53,9 +55,9 @@ export function useLikeComment() {
 
     return useMutation({
         mutationFn: async (commentId: string) => {
-            const response = await fetch('/api/like', {
+            const response = await fetch(API_ROUTES.like, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAppwriteFallbackHeaders() },
                 body: JSON.stringify({ commentId }),
             });
             if (!response.ok) throw new Error('Failed to like comment');

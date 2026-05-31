@@ -1,6 +1,5 @@
-complete this platform to have complete ui of medium such as:
-- medium clone and use a free cms to manage the content,
-- we need user auth so use next-auth and store it in the cms, and 
-- for each users blogs manage the cms, 
-
-imp: need all features of medium blog app
+Complete this platform as a Medium-inspired blog app:
+- Appwrite manages auth and app data.
+- Users can read, like, save, and comment on posts.
+- Authors and posts are stored in Appwrite collections.
+- The UI should feel familiar to Medium while using Verse's own warmer visual style.
