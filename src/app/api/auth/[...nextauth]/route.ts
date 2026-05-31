@@ -1,6 +1,6 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
-import { sanityClient } from '@/lib/sanity';
+import { createAuthor, getAuthorByEmail } from '@/lib/appwrite-server';
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -10,50 +10,33 @@ export const authOptions: NextAuthOptions = {
         }),
     ],
     callbacks: {
-        async signIn({ user, account, profile }) {
-            if (account?.provider === 'google') {
-                // Check if user exists in Sanity
-                const existingUser = await sanityClient.fetch(
-                    `*[_type == "author" && email == $email][0]`,
-                    { email: user.email }
-                );
-
-                if (!existingUser) {
-                    // Create new author in Sanity
-                    await sanityClient.create({
-                        _type: 'author',
-                        name: user.name,
+        async signIn({ user, account }) {
+            if (account?.provider === 'google' && user.email) {
+                let author = await getAuthorByEmail(user.email);
+                if (!author) {
+                    author = await createAuthor({
+                        name: user.name || user.email.split('@')[0],
                         email: user.email,
-                        image: {
-                            _type: 'image',
-                            asset: {
-                                _type: 'reference',
-                                _ref: await uploadImageToSanity(user.image || ''),
-                            },
-                        },
-                        slug: {
-                            _type: 'slug',
-                            current: user.email?.split('@')[0] || '',
-                        },
+                        image: user.image || '',
+                        slug: user.email.split('@')[0],
                     });
                 }
             }
             return true;
         },
-        async session({ session, token }) {
-            if (session.user) {
-                const sanityUser = await sanityClient.fetch(
-                    `*[_type == "author" && email == $email][0]{
-            _id,
-            name,
-            email,
-            image,
-            slug,
-            bio
-          }`,
-                    { email: session.user.email }
-                );
-                session.user = { ...session.user, ...sanityUser };
+        async session({ session }) {
+            if (session.user?.email) {
+                const author = await getAuthorByEmail(session.user.email);
+                if (author) {
+                    session.user = {
+                        ...(session.user as any),
+                        _id: author.$id,
+                        name: author.name,
+                        image: author.image,
+                        slug: { current: author.slug },
+                        bio: author.bio,
+                    } as any;
+                }
             }
             return session;
         },
@@ -62,12 +45,6 @@ export const authOptions: NextAuthOptions = {
         signIn: '/auth/signin',
     },
 };
-
-async function uploadImageToSanity(imageUrl: string): Promise<string> {
-    // For now, return a placeholder
-    // In production, you'd fetch the image and upload it to Sanity
-    return 'image-placeholder';
-}
 
 const handler = NextAuth(authOptions);
 

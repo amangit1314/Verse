@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Post } from '@/types';
-import { urlFor } from '@/lib/sanity';
 import { Heart, MessageCircle, Bookmark } from 'lucide-react';
 
 interface PostCardProps {
@@ -17,7 +16,7 @@ export default function PostCard({ post }: PostCardProps) {
                     <div className="flex items-center space-x-2 mb-3">
                         {post.author.image && (
                             <Image
-                                src={urlFor(post.author.image).width(40).height(40).url() || ''}
+                                src={post.author.image}
                                 alt={post.author.name}
                                 width={40}
                                 height={40}
@@ -67,9 +66,9 @@ export default function PostCard({ post }: PostCardProps) {
 
                 {/* Post Image */}
                 {post.mainImage && (
-                    <Link href={`/post/${post.slug.current}`} className="flex-shrink-0">
+                    <Link href={`/post/${post.slug.current}`} className="shrink-0">
                         <Image
-                            src={urlFor(post.mainImage).width(200).height(134).url() || ''}
+                            src={post.mainImage}
                             alt={post.title}
                             width={200}
                             height={134}

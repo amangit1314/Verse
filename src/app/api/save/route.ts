@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
-import { sanityClient } from '@/lib/sanity';
+import { ID } from 'appwrite';
+import { createAppwriteServerDatabases, appwriteCollections, appwriteQueries, appwriteDatabaseId, getAuthorByEmail } from '@/lib/appwrite-server';
 
 export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
@@ -12,36 +13,38 @@ export async function POST(request: NextRequest) {
 
     try {
         const { postId } = await request.json();
+        if (!postId) {
+            return NextResponse.json({ error: 'Missing postId' }, { status: 400 });
+        }
 
-        // Get user from Sanity
-        const user = await sanityClient.fetch(
-            `*[_type == "author" && email == $email][0]`,
-            { email: session.user.email }
-        );
-
-        if (!user) {
+        const databases = createAppwriteServerDatabases();
+        const author = await getAuthorByEmail(session.user.email);
+        if (!author) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        // Check if already saved
-        const existingSave = await sanityClient.fetch(
-            `*[_type == "save" && author._ref == $userId && post._ref == $postId][0]`,
-            { userId: user._id, postId }
+        const existingSave = await databases.listDocuments(appwriteDatabaseId, appwriteCollections.saves, [
+            appwriteQueries.equal('authorId', author.$id),
+            appwriteQueries.equal('postId', postId),
+            appwriteQueries.limit(1),
+        ]);
+
+        if (existingSave.documents.length > 0) {
+            await databases.deleteDocument(appwriteDatabaseId, appwriteCollections.saves, existingSave.documents[0].$id);
+            return NextResponse.json({ saved: false });
+        }
+
+        await databases.createDocument(
+            appwriteDatabaseId,
+            appwriteCollections.saves,
+            ID.unique(),
+            {
+                authorId: author.$id,
+                postId,
+            }
         );
 
-        if (existingSave) {
-            // Unsave
-            await sanityClient.delete(existingSave._id);
-            return NextResponse.json({ saved: false });
-        } else {
-            // Save
-            await sanityClient.create({
-                _type: 'save',
-                author: { _type: 'reference', _ref: user._id },
-                post: { _type: 'reference', _ref: postId },
-            });
-            return NextResponse.json({ saved: true });
-        }
+        return NextResponse.json({ saved: true });
     } catch (error) {
         console.error('Error toggling save:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

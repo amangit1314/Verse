@@ -7,16 +7,11 @@ export interface Post {
         current: string;
     };
     author: Author;
-    mainImage?: {
-        asset: {
-            _ref: string;
-            url: string;
-        };
-    };
+    mainImage?: string;
     categories?: Category[];
     publishedAt: string;
     description?: string;
-    body: any[];
+    body: string;
     likesCount?: number;
     commentsCount?: number;
 }
@@ -27,13 +22,8 @@ export interface Author {
     slug: {
         current: string;
     };
-    image?: {
-        asset: {
-            _ref: string;
-            url: string;
-        };
-    };
-    bio?: any[];
+    image?: string;
+    bio?: string;
     email?: string;
     followers?: Author[];
     following?: Author[];
@@ -55,9 +45,7 @@ export interface Comment {
     };
     author: Author;
     body: string;
-    parentComment?: {
-        _ref: string;
-    };
+    parentCommentId?: string | null;
     approved: boolean;
     createdAt: string;
     likesCount?: number;

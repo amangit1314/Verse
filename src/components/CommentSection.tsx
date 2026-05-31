@@ -3,7 +3,6 @@
 import { useComments, useCreateComment } from '@/hooks/useComments';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
-import { urlFor } from '@/lib/sanity';
 import { Heart, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Comment } from '@/types';
@@ -42,7 +41,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             <div className="flex space-x-3">
                 {comment.author.image && (
                     <Image
-                        src={urlFor(comment.author.image).width(40).height(40).url() || ''}
+                        src={comment.author.image}
                         alt={comment.author.name}
                         width={40}
                         height={40}

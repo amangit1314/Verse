@@ -1,35 +1,19 @@
-import { sanityClient } from '@/lib/sanity';
-import { Post } from '@/types';
 import PostCard from '@/components/PostCard';
+import { Post } from '@/types';
+import { createAppwriteServerDatabases, appwriteCollections, appwriteQueries, appwriteDatabaseId, transformPost } from '@/lib/appwrite-server';
 
 async function getPosts(): Promise<Post[]> {
-    const query = `
-    *[_type == "post"] | order(publishedAt desc, _createdAt desc) {
-      _id,
-      _createdAt,
-      _updatedAt,
-      title,
-      slug,
-      author->{
-        _id,
-        name,
-        slug,
-        image
-      },
-      mainImage,
-      categories[]->{
-        _id,
-        title,
-        slug
-      },
-      publishedAt,
-      description,
-      "likesCount": count(*[_type == "like" && post._ref == ^._id]),
-      "commentsCount": count(*[_type == "comment" && post._ref == ^._id && approved == true])
-    }
-  `;
+    try {
+        const databases = createAppwriteServerDatabases();
+        const result = await databases.listDocuments(appwriteDatabaseId, appwriteCollections.posts, [
+            appwriteQueries.orderDesc('publishedAt'),
+        ]);
 
-    return await sanityClient.fetch(query);
+        return result.documents.map(transformPost);
+    } catch (error) {
+        console.error('Failed to fetch posts:', error);
+        return [];
+    }
 }
 
 export default async function Home() {
@@ -38,7 +22,7 @@ export default async function Home() {
     return (
         <main className="flex-1">
             {/* Hero Section */}
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-16">
+            <div className="bg-linear-to-r from-purple-600 to-pink-600 text-white py-16">
                 <div className="container-medium">
                     <h1 className="text-6xl font-serif font-bold mb-4">Stay curious.</h1>
                     <p className="text-xl mb-6">

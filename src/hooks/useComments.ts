@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { sanityClient } from '@/lib/sanity';
 import { Comment } from '@/types';
 
 // Fetch comments for a post
@@ -7,31 +6,11 @@ export function useComments(postId: string) {
     return useQuery({
         queryKey: ['comments', postId],
         queryFn: async (): Promise<Comment[]> => {
-            const query = `
-        *[_type == "comment" && post._ref == $postId && approved == true && !defined(parentComment)] | order(createdAt desc) {
-          _id,
-          body,
-          createdAt,
-          author->{
-            _id,
-            name,
-            image
-          },
-          "likesCount": count(*[_type == "like" && comment._ref == ^._id]),
-          "replies": *[_type == "comment" && parentComment._ref == ^._id && approved == true] | order(createdAt asc) {
-            _id,
-            body,
-            createdAt,
-            author->{
-              _id,
-              name,
-              image
-            },
-            "likesCount": count(*[_type == "like" && comment._ref == ^._id])
-          }
-        }
-      `;
-            return await sanityClient.fetch(query, { postId });
+            const response = await fetch(`/api/comment?postId=${encodeURIComponent(postId)}`);
+            if (!response.ok) {
+                throw new Error('Failed to load comments');
+            }
+            return response.json();
         },
         enabled: !!postId,
         staleTime: 1000 * 60 * 2, // 2 minutes
@@ -61,9 +40,7 @@ export function useCreateComment() {
             return response.json();
         },
         onSuccess: (_, variables) => {
-            // Invalidate comments for this post
             queryClient.invalidateQueries({ queryKey: ['comments', variables.postId] });
-            // Also invalidate the post to update comment count
             queryClient.invalidateQueries({ queryKey: ['post'] });
             queryClient.invalidateQueries({ queryKey: ['posts'] });
         },

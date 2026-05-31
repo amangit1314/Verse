@@ -1,11 +1,10 @@
-import { sanityClient, urlFor } from '@/lib/sanity';
 import { Post } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
-import { PortableText } from '@portabletext/react';
 import { notFound } from 'next/navigation';
 import PostInteractions from '@/components/PostInteractions';
 import CommentSection from '@/components/CommentSection';
+import { createAppwriteServerDatabases, appwriteCollections, appwriteQueries, appwriteDatabaseId, transformPost } from '@/lib/appwrite-server';
 
 interface PageProps {
     params: Promise<{
@@ -14,35 +13,17 @@ interface PageProps {
 }
 
 async function getPost(slug: string): Promise<Post | null> {
-    const query = `
-    *[_type == "post" && slug.current == $slug][0]{
-      _id,
-      _createdAt,
-      _updatedAt,
-      title,
-      slug,
-      author->{
-        _id,
-        name,
-        slug,
-        image,
-        bio
-      },
-      mainImage,
-      categories[]->{
-        _id,
-        title,
-        slug
-      },
-      publishedAt,
-      description,
-      body,
-      "likesCount": count(*[_type == "like" && post._ref == ^._id]),
-      "commentsCount": count(*[_type == "comment" && post._ref == ^._id && approved == true])
-    }
-  `;
+    const databases = createAppwriteServerDatabases();
+    const result = await databases.listDocuments(appwriteDatabaseId, appwriteCollections.posts, [
+        appwriteQueries.equal('slug', slug),
+        appwriteQueries.limit(1),
+    ]);
 
-    return await sanityClient.fetch(query, { slug });
+    if (!result.documents.length) {
+        return null;
+    }
+
+    return transformPost(result.documents[0]);
 }
 
 export default async function PostPage({ params }: PageProps) {
@@ -74,7 +55,7 @@ export default async function PostPage({ params }: PageProps) {
                     >
                         {post.author.image && (
                             <Image
-                                src={urlFor(post.author.image).width(48).height(48).url() || ''}
+                                src={post.author.image}
                                 alt={post.author.name}
                                 width={48}
                                 height={48}
@@ -99,7 +80,7 @@ export default async function PostPage({ params }: PageProps) {
                 {post.mainImage && (
                     <div className="mb-12">
                         <Image
-                            src={urlFor(post.mainImage).width(1200).height(600).url() || ''}
+                            src={post.mainImage}
                             alt={post.title}
                             width={1200}
                             height={600}
@@ -110,7 +91,9 @@ export default async function PostPage({ params }: PageProps) {
 
                 {/* Body */}
                 <div className="prose prose-lg dark:prose-invert max-w-none mb-12">
-                    <PortableText value={post.body} />
+                    {post.body.split('\n').map((paragraph, index) => (
+                        <p key={index}>{paragraph}</p>
+                    ))}
                 </div>
 
                 {/* Comments */}
